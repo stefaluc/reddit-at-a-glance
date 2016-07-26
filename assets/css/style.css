@@ -1,0 +1,73 @@
+@font-face {
+	font-family: font;
+	src: url(../fonts/rocko-flf.otf);
+}
+ol {
+	list-style-position: inside;
+	padding-left: 0;
+}
+li {
+	padding: 5px;
+	margin:0px;
+}
+body {
+	font-family: "Verdana";
+	min-width: 450px;
+	max-height: 200px;
+	float:left;
+}
+#title {
+	background-color: #CEE3F8;
+	padding: 3px;
+	font-size: 30px;
+	font-weight: normal;
+	font-family: font;
+	display: inline-block;
+	width: 100%;
+}
+a {
+	text-decoration: none;
+}
+#image {
+	width: 0px;
+}
+#post_text {
+	float: right;
+}
+
+#new_post {
+    -webkit-animation: fadein 2s; /* Safari, Chrome and Opera > 12.1 */
+       -moz-animation: fadein 2s; /* Firefox < 16 */
+        -ms-animation: fadein 2s; /* Internet Explorer */
+         -o-animation: fadein 2s; /* Opera < 12.1 */
+            animation: fadein 2s;
+}
+
+@keyframes fadein {
+    from { background-color: #FF6200; }
+    to   { opacity: #FFFFFF; }
+}
+
+/* Firefox < 16 */
+@-moz-keyframes fadein {
+    from { background-color: #FF6200; }
+    to   { opacity: #FFFFFF; }
+}
+
+/* Safari, Chrome and Opera > 12.1 */
+@-webkit-keyframes fadein {
+    from { background-color: #FF6200; }
+    to   { opacity: #FFFFFF; }
+}
+
+/* Internet Explorer */
+@-ms-keyframes fadein {
+    from { background-color: #FF6200; }
+    to   { opacity: #FFFFFF; }
+}
+
+/* Opera < 12.1 */
+@-o-keyframes fadein {
+    from { background-color: #FF6200; }
+    to   { opacity: #FFFFFF; }
+}
