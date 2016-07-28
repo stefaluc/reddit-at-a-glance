@@ -6,7 +6,7 @@ var newPostsFound = true;
 
 function getPosts() {
 	console.log('getposts reached.')
-	//begin arraysynchronous xhr
+	//begin asynchronous xhr
 	xhr = new XMLHttpRequest();
 	xhr.onload = function() {
 		if(xhr.readyState == 4 && xhr.status == 200) {
