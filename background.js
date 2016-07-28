@@ -4,16 +4,20 @@ var posts;
 var xhr;
 var newPostsFound = true;
 
-//TODO: make method asynchronous
 function getPosts() {
 	console.log('getposts reached.')
-	//begin synchronous xhr
+	//begin arraysynchronous xhr
 	xhr = new XMLHttpRequest();
-	xhr.open("GET", 'https://www.reddit.com/.json', false);
-	xhr.onload = processJSON;
+	xhr.onload = function() {
+		if(xhr.readyState == 4 && xhr.status == 200) {
+			processJSON();
+		}
+	}
+	xhr.open("GET", 'https://www.reddit.com/.json', true);
 	xhr.send(null);
 }
 
+//used in array.sort() to sort posts by their date created
 function comparePosts(a, b) {
 	return Number(a.data.created) - Number(b.data.created); 
 }
@@ -74,7 +78,6 @@ function checkNewPosts(newList) {
 			unreadCount = 0;
 			newPostsFound = false;
 		}
-		
 		//return changed/unchanged newList
 		return newListSave;
 	}
@@ -108,19 +111,13 @@ function processJSON() {
 }
 
 getPosts();
+//run getPosts() every 10000ms
 setInterval(getPosts, fetchFreq);
-
 
 //receive message from popup.js and send back updated reddit front page
 chrome.runtime.onMessage.addListener(function(response, sender, sendResponse) {
+	//set unread back to 0 when popup is opened
 	unreadCount = response;
+	//send back posts array, true/false if there's new posts, and number of unread posts
 	sendResponse({frontPage: posts, areNewPosts: newPostsFound, unread: unreadCount});
 });
-
-/*
-var port = chrome.extension.connect({name: "Sample Communication"});
-port.postMessage(posts);
-port.onMessage.addListener(function(msg) {
-	console.log("message recieved"+ msg);
-	unreadCount = 0;
-});*/

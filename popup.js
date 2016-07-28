@@ -1,14 +1,17 @@
 function init() {
+	//clear badge off of extension icon to show new posts have been viewed
 	chrome.browserAction.setBadgeText({text: ''});
 	var posts = [];
 	var unreadCount = 0;
 
+	//sends message to background.js to receive acquired xhr of new reddit front page
 	chrome.runtime.sendMessage(unreadCount, function(response) {
 		posts = response.frontPage;
 		var newPostsPresent = response.areNewPosts;
 		unreadCount = response.unread;
 
-		var list = document.getElementById('front_page');
+		var list = document.getElementById('front_page'); //ol tag to be populated
+		//incremently load reddit posts to ol tag in popup.html
 		for(var i=0;i < posts.length; i++) {
 			var cur_child = posts[i];
 			var img_url = cur_child.data.url;
@@ -52,16 +55,9 @@ function init() {
 			list.appendChild(entry);
 		}
 	});
-	/*chrome.extension.onConnect.addListener(function(port) {
-		console.log("Connected .....");
-		port.onMessage.addListener(function(msg, response) {
-		    console.log("message recieved"+ msg);
-		    port.postMessage(unreadCount);
-			posts = response;
-		  });
-	});*/
 }
 
+//on popup open, initialize window with reddit front page posts
 window.onload = function() {
 	init();
 }
