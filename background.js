@@ -1,11 +1,17 @@
-var fetchFreq = 10000;
-var unreadCount = 0;
-var posts;
-var xhr;
-var newPostsFound = true;
+var fetchFreq = 10000;    // (10000ms) interval to run code at
+var unreadCount = 0;      // updates extension badge
+var xhr;				  // xmlhttprequest object
+var newPostsFound = true; // sent to popup.html to identify when posts has been updated
+var posts;                // array of front page's json data most recently loaded
+var backgroundPostsSave;  // array of json data to store front page with new posts first
+var currentSubreddit = null;
 
 function getPosts() {
-	console.log('getposts reached.')
+	console.log(currentSubreddit);
+	xhrRequest(currentSubreddit);
+}
+
+function xhrRequest(subreddit) {
 	//begin asynchronous xhr
 	xhr = new XMLHttpRequest();
 	xhr.onload = function() {
@@ -13,8 +19,14 @@ function getPosts() {
 			processJSON();
 		}
 	}
-	xhr.open("GET", 'https://www.reddit.com/.json', true);
+	if(currentSubreddit == null) {
+		xhr.open("GET", 'https://www.reddit.com/.json', true);
+	} else {
+		console.log("reached1");
+		xhr.open("GET", 'https://www.reddit.com/r/'+subreddit+'/.json', true);
+	}
 	xhr.send(null);
+	return xhr;
 }
 
 //used in array.sort() to sort posts by their date created
@@ -25,11 +37,12 @@ function comparePosts(a, b) {
 function checkNewPosts(newList) {
 	//if this is the first xhr request
 	if(posts == null) {
+		console.log('reached2');
 		unreadCount += newList.length;
-		newPostsFound = false;
+		newPostsFound = false; //set to false so new post animation isn't played
+		backgroundPostsSave = newList;
 		return newList;
 	} else {
-		var numNewPosts = 0;
 		var newListSave = [];
 		//save ordering of new
 		for(var i=0; i<newList.length; i++) {
@@ -46,15 +59,16 @@ function checkNewPosts(newList) {
 		//evaluates if a new post is present on the front page
 		if(!listsAreSame) {
 			for(var i=0; i < newList.length; i++) {
-				var count = 0;
+				var matchFound = false;
 				for(var j=0; j < posts.length; j++) {
 					//compare every post in newList to posts 
 					if(sortedNew[i].data.created == sortedPosts[j].data.created) {
-						count++;
+						matchFound = true;
+						break;
 					}
 				}
-				//if count is not equal to posts.length (25), a new post has been found
-				if(!(count == posts.length)) {
+				//if there is no match, a new post has been found
+				if(!matchFound) {
 					//remove new posts from newList and add them to beginning of list
 					var temp = sortedNew[i];
 					var tempCount = 0;
@@ -69,14 +83,12 @@ function checkNewPosts(newList) {
 					newListSave.splice(tempCount, 1);
 					//insert new post at beginning
 					newListSave.unshift(temp);
-					numNewPosts++;
+					unreadCount++;
+					//save the state of posts to display when popup is opened
+					backgroundPostsSave = newListSave;
 				}
 			}
 			newPostsFound = true;
-			unreadCount = numNewPosts;
-		} else {
-			unreadCount = 0;
-			newPostsFound = false;
 		}
 		//return changed/unchanged newList
 		return newListSave;
@@ -107,17 +119,32 @@ function processJSON() {
 		});
 		chrome.browserAction.setBadgeText({text: '' + unreadCount});
 	}
+	
+	//update current background state of front page
 	posts = newList;
+	console.log(posts);
 }
 
-getPosts();
-//run getPosts() every 10000ms
-setInterval(getPosts, fetchFreq);
+//getPosts(); 					    // initial getPosts() run to setup front page
+//setInterval(getPosts, fetchFreq); // run getPosts() every 10000ms
 
 //receive message from popup.js and send back updated reddit front page
 chrome.runtime.onMessage.addListener(function(response, sender, sendResponse) {
+	if(response.isNew) {
+		posts = null;
+		currentSubreddit = response.subreddit;
+		console.log(response.subreddit);
+		$.when(xhrRequest(currentSubreddit)).done(function() {
+			//send back posts array, true/false if there's new posts, and number of unread posts
+			sendResponse({frontPage: posts, areNewPosts: newPostsFound, unread: unreadCount});
+		});
+	}
+	console.log(posts);
+	if(newPostsFound && !response.isNew) {	
+		//update posts to display new found posts first
+		posts = backgroundPostsSave;
+	}
+	
 	//set unread back to 0 when popup is opened
-	unreadCount = response;
-	//send back posts array, true/false if there's new posts, and number of unread posts
-	sendResponse({frontPage: posts, areNewPosts: newPostsFound, unread: unreadCount});
+	unreadCount = 0;
 });

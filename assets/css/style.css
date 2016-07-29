@@ -34,6 +34,14 @@ ol {
 .post:hover {
 	background-color: #EEEFFF;
 }
+#new_post {
+	width: 100%;
+	padding: 5px;
+	display: block;
+	overflow: auto;
+	border-bottom: 1px solid #EEEFFF;
+	background-color: #FF4500;
+}
 .text_container {
 	height: auto;
 	overflow: hidden;
@@ -51,6 +59,19 @@ a.origin:hover {
 	color: #9E9ABC;
 	text-decoration: underline;
 }
+a.info {
+	color: #527DC8;
+}
+a.comment {
+	font-weight: bold;
+	color: #888888;
+}
+a.info:hover {
+	text-decoration: underline;
+}
+a.comment:hover {
+	text-decoration: underline;
+}
 .image {
 	float: left;
 	margin-right: 4px;
@@ -58,12 +79,4 @@ a.origin:hover {
 .post_info {
 	font-size: 10px;
 	color: #9E9ABC;
-}
-#new_post {
-    -webkit-animation: fadein 2s;
-}
-
-@keyframes fadein {
-    from { background-color: #FF6200; }
-    to   { opacity: #FFFFFF; }
 }
