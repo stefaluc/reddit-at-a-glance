@@ -1,31 +1,47 @@
-var fetchFreq = 10000;    // (10000ms) interval to run code at
-var unreadCount = 0;      // updates extension badge
-var xhr;				  // xmlhttprequest object
-var newPostsFound = true; // sent to popup.html to identify when posts has been updated
-var posts;                // array of front page's json data most recently loaded
-var backgroundPostsSave;  // array of json data to store front page with new posts first
-var currentSubreddit = null;
+var fetchFreq = 10000;    	 // (10000ms) interval to run code at
+var unreadCount = 0;      	 // updates extension badge
+var xhr;				  	 // xmlhttprequest object
+var newPostsFound = true; 	 // sent to popup.html to identify when posts has been updated
+var posts;                	 // array of front page's json data most recently loaded
+var backgroundPostsSave;  	 // array of json data to store front page with new posts first
+var currentSubreddit = null; // value of subreddit that is currently loaded, null is the front page
+var invalidSubreddit = false;
 
-function getPosts() {
+function getPosts(sendResponse) {
 	console.log(currentSubreddit);
-	xhrRequest(currentSubreddit);
+	xhrRequest(currentSubreddit, sendResponse);
 }
 
-function xhrRequest(subreddit) {
+function xhrRequest(subreddit, sendResponse) {
+	console.log(invalidSubreddit);
+	//don't bother doing xhr if request invalid
+	if(invalidSubreddit) {
+		return;
+	}
 	//begin asynchronous xhr
 	xhr = new XMLHttpRequest();
-	xhr.onload = function() {
-		if(xhr.readyState == 4 && xhr.status == 200) {
-			processJSON();
+	xhr.onreadystatechange = function() {
+		if(xhr.readyState == 4) {
+			if(xhr.status == 200) {
+				console.log("reached xhr");
+				processJSON(sendResponse);
+			} else {
+				console.log('reached bad status');
+				invalidSubreddit = true;
+				sendResponse({invalid: true});
+				return;
+			}
 		}
 	}
 	if(currentSubreddit == null) {
+		console.log('reached front page open');
 		xhr.open("GET", 'https://www.reddit.com/.json', true);
 	} else {
-		console.log("reached1");
+		console.log("reached open");
 		xhr.open("GET", 'https://www.reddit.com/r/'+subreddit+'/.json', true);
 	}
 	xhr.send(null);
+
 	return xhr;
 }
 
@@ -38,7 +54,6 @@ function checkNewPosts(newList) {
 	//if this is the first xhr request
 	if(posts == null) {
 		console.log('reached2');
-		unreadCount += newList.length;
 		newPostsFound = false; //set to false so new post animation isn't played
 		backgroundPostsSave = newList;
 		return newList;
@@ -95,7 +110,7 @@ function checkNewPosts(newList) {
 	}
 }
 
-function processJSON() {
+function processJSON(sendResponse) {
 	/* create JSON file from xhr request. JSON follows levels of:
 	 * json
 	 * -- data
@@ -112,8 +127,8 @@ function processJSON() {
 	//update list if there's new posts present
 	newList = checkNewPosts(newList);
 
-	//update badge to display number of unread posts
-	if(unreadCount > 0) {
+	//update badge to display number of unread posts (except on subreddit change)
+	if(unreadCount > 0 && sendResponse == null) {
 		chrome.browserAction.setBadgeBackgroundColor({
 			color: [255, 0, 0, 255]
 		});
@@ -122,29 +137,50 @@ function processJSON() {
 	
 	//update current background state of front page
 	posts = newList;
-	console.log(posts);
+	//only sendResponse if new subreddit is being loaded
+	if(sendResponse != null) {
+		undreadCount = 0;
+		sendResponse({
+			frontPage: posts,
+			areNewPosts: newPostsFound, 
+			unread: unreadCount,
+			invalid: false
+		});
+	}
 }
 
-//getPosts(); 					    // initial getPosts() run to setup front page
-//setInterval(getPosts, fetchFreq); // run getPosts() every 10000ms
+getPosts(); 					  // initial getPosts() run to setup front page
+setInterval(getPosts, fetchFreq); // run getPosts() every 10000ms
 
 //receive message from popup.js and send back updated reddit front page
 chrome.runtime.onMessage.addListener(function(response, sender, sendResponse) {
 	if(response.isNew) {
+		unreadCount = 0;
+		invalidSubreddit = false; //set to false until we know it isn't
 		posts = null;
 		currentSubreddit = response.subreddit;
 		console.log(response.subreddit);
-		$.when(xhrRequest(currentSubreddit)).done(function() {
-			//send back posts array, true/false if there's new posts, and number of unread posts
-			sendResponse({frontPage: posts, areNewPosts: newPostsFound, unread: unreadCount});
-		});
+		xhrRequest(currentSubreddit, sendResponse);
+		return true; //call sendResponse asychronously
+	} else if(response.reset) {
+		unreadCount = 0;
+		currentSubreddit = null;
+		invalidSubreddit = false;
+		posts = null;
+		xhrRequest(currentSubreddit, sendResponse);
+		return true;
 	}
-	console.log(posts);
 	if(newPostsFound && !response.isNew) {	
 		//update posts to display new found posts first
 		posts = backgroundPostsSave;
 	}
-	
+	//send back posts array, true/false if there's new posts, and number of unread posts
+	sendResponse({
+		frontPage: posts, 
+		areNewPosts: newPostsFound, 
+		unread: unreadCount,
+		isNotFront: currentSubreddit
+	});
 	//set unread back to 0 when popup is opened
 	unreadCount = 0;
 });

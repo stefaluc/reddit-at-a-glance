@@ -20,6 +20,43 @@ ol {
 	display: inline-block;
 	width: 100%;
 }
+input[type=text] {
+	box-sizing: border-box;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+    /*border: 2px solid #ccc;
+    border-radius: 4px;*/
+    border: none;
+	border-bottom: solid 2px #c9c9c9;
+	transition: border 0.5s, width 0.5s;
+    font-size: 16px;
+    background-color: white;
+    padding: 6px 6px 6px 6px;
+    width: 175px;
+    font-size: 16px;
+    display: block;
+}
+input[type=text]:focus {
+	outline: none;
+	border-bottom: solid 2px #969696;
+	width: 100%;
+}
+form {
+	margin-bottom: 5px;
+}
+#reset { 
+	font-size: 13px;
+	color: blue;
+}
+#reset:hover {
+	cursor: pointer;
+	text-decoration: underline;
+}
+#error {
+	font-family: "Verdana";
+	font-size: 12px;
+	color: red;
+}
 #container {
 	width: 100%;
 }
@@ -34,7 +71,7 @@ ol {
 .post:hover {
 	background-color: #EEEFFF;
 }
-#new_post {
+.new_post {
 	width: 100%;
 	padding: 5px;
 	display: block;

@@ -4,7 +4,10 @@ var posts = [];
 var unreadCount;
 var isNewSubreddit = false;
 var newSubreddit;
+var errorText = false;
+var switchFrontPage = true;
 
+//initializes popup window with formatted posts queued up in background.js
 function init(response) {
 	posts = response.frontPage;
 	var newPostsPresent = response.areNewPosts;
@@ -18,12 +21,12 @@ function init(response) {
 		var entry = document.createElement('div'); //entire post
 		//adds animation to new posts
 		if(newPostsPresent && unreadCount > 0) {
-			entry.id = 'new_post';
+			entry.className = 'new_post';
 			//only queue up animation once
 			if(i == 0) {
 				//animation fires once full page is loaded
-				$("#new_post").ready(function() {
-					$("#new_post").animate({backgroundColor: "#FFFFFF"});	
+				$(document).ready(function() {
+					$(".new_post").animate({backgroundColor: "#FFFFFF"}, 1500);
 				});
 			}
 			unreadCount--;
@@ -66,30 +69,73 @@ function init(response) {
 	}
 }
 
-//on popup open, initialize window with reddit front page posts
+//on popup open
 window.onload = function() {
-	/*if(!isNewSubreddit) {
-		//sends message to background.js to receive acquired xhr of new reddit front page
-		chrome.runtime.sendMessage(isNewSubreddit, function(response) {
+	if(!isNewSubreddit) {
+		//initialize reddit with current background state of posts
+		chrome.runtime.sendMessage({isNew : isNewSubreddit}, function(response) {
+			//display reset to front if background state is not on front page
+			if(response.isNotFront) {
+				createResetToFront();
+			}
 			init(response);
 		});
-	}*/
+	}
 	document.getElementById('iform').onsubmit = function(event) {
 		return false; //stops form from reloading page
 	};
+	//initialize reddit with form input
 	document.getElementById('iform').onkeydown = function(event) {
 		if(event.keyCode == 13) {
+			//display link to return to front page (only once)
+			if(switchFrontPage) {
+				createResetToFront();
+			}
 			isNewSubreddit = true;
 			newSubreddit = document.getElementById('subreddit').value;
-			document.getElementById('container').innerHTML = ''; //clear front page
+			document.getElementById('container').innerHTML = ''; //clear window of posts
+			//send message to load new subreddit and initialize window with new info
 			chrome.runtime.sendMessage({
 					isNew: isNewSubreddit, subreddit: newSubreddit} , function(response) {
-				init(response); //init with new subreddit
+				if(response.invalid && !errorText) { //display error text
+					var error = document.createElement('div'); error.id = 'error';
+					error.appendChild(document.createTextNode('Please submit a valid subreddit name'));
+					document.getElementById('title').appendChild(error);
+					errorText = true;
+				} else if(!response.invalid && errorText) { //remove error text and init
+					document.getElementById('title').removeChild(document.getElementById('error'));
+					errorText = false;
+					init(response); 
+				} else if(!response.invalid) { //init
+					init(response);
+				}
 			});
 		}
 	};
 }
-
+//displays reset option below change subreddit form
+function createResetToFront() {
+	var reset = document.createElement('span'); reset.id = 'reset';
+	reset.onclick = resetToFront; 
+	reset.appendChild(document.createTextNode('Return to front page'));
+	title.appendChild(reset);
+	switchFrontPage = false;
+}
+//reset window to front page
+function resetToFront(event) {
+	//remove error text if present
+	if(errorText) {
+		document.getElementById('title').removeChild(document.getElementById('error'));
+		errorText = false;
+	}
+	//send message to get front page
+	chrome.runtime.sendMessage({reset: true}, function(response) {
+		document.getElementById('title').removeChild(document.getElementById('reset'));
+		document.getElementById('container').innerHTML = ''; //clear window of posts
+		init(response);
+		switchFrontPage = true;
+	});
+}
 
 function getPostTitle(post) {
 	var titleContainer = document.createElement('div'); titleContainer.className = 'title_container';;
