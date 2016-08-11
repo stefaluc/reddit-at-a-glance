@@ -8,7 +8,7 @@ var currentSubreddit = null;  // value of subreddit that is currently loaded, nu
 var invalidSubreddit = false; // set to true when user inputs invalid input into form
 
 getPosts();                       // initial getPosts() run to setup front page
-setInterval(getPosts, fetchFreq); // run getPosts() every 10000ms
+setInterval(getPosts, fetchFreq); // run getPosts() every 20000ms
 
 //receive message from popup.js and send back updated reddit front page
 chrome.runtime.onMessage.addListener(function(response, sender, sendResponse) {
@@ -21,7 +21,7 @@ chrome.runtime.onMessage.addListener(function(response, sender, sendResponse) {
 		} else { 
 			currentSubreddit = null; //sets popup back to front page
 		}
-		getPosts(currentSubreddit, sendResponse);
+		getPosts(sendResponse);
 		return true; //call sendResponse asychronously
 	}
 	if(newPostsFound && !response.isNew) {	
