@@ -1,17 +1,60 @@
-//clear badge off of extension icon to show new posts have been viewed
-chrome.browserAction.setBadgeText({text: ''});
-var posts = [];
-var unreadCount;
-var isNewSubreddit = false;
-var newSubreddit;
-var errorText = false;
-var switchFrontPage = true;
+var isNewSubreddit = false;    // keeps track of subreddit changes
+var newSubreddit;              // keeps track of which subreddit is being change dto
+var errorText = false;         // whether or not error text is present in popup window
+var switchFrontPage = true;    // whether or not user is switching to the front page
+chrome.browserAction           // clears notification badge everytime popup opens
+    .setBadgeText({text: ''}); 
+
+//on popup open
+window.onload = function() {
+	if(!isNewSubreddit) {
+		//initialize reddit with current background state of posts
+		chrome.runtime.sendMessage({isNew : isNewSubreddit}, function(response) {
+			//display reset to front if background state is not on front page
+			if(response.isNotFront) {
+				createResetToFront();
+			}
+			init(response);
+		});
+	}
+	document.getElementById('iform').onsubmit = function(event) {
+		return false; //stops form from reloading page
+	};
+	//initialize reddit with form input
+	document.getElementById('iform').onkeydown = function(event) {
+		if(event.keyCode == 13) {
+			//display link to return to front page (only once)
+			if(switchFrontPage) {
+				createResetToFront();
+			}
+			isNewSubreddit = true;
+			newSubreddit = document.getElementById('subreddit').value;
+			document.getElementById('container').innerHTML = ''; //clear window of posts
+			//send message to load new subreddit and initialize window with new info
+			chrome.runtime.sendMessage({
+					isNew: isNewSubreddit, subreddit: newSubreddit} , function(response) {
+				if(response.invalid && !errorText) { //display error text
+					var error = document.createElement('div'); error.id = 'error';
+					error.appendChild(document.createTextNode('Please submit a valid subreddit name'));
+					document.getElementById('title').appendChild(error);
+					errorText = true;
+				} else if(!response.invalid && errorText) { //remove error text and init
+					document.getElementById('title').removeChild(document.getElementById('error'));
+					errorText = false;
+					init(response); 
+				} else if(!response.invalid) { //init
+					init(response);
+				}
+			});
+		}
+	};
+}
 
 //initializes popup window with formatted posts queued up in background.js
 function init(response) {
-	posts = response.frontPage;
+	var posts = response.frontPage;
 	var newPostsPresent = response.areNewPosts;
-	unreadCount = response.unread;
+	var unreadCount = response.unread;
 
 	var list = document.getElementById('container'); //div tag to be populated
 	//incrementally load reddit posts to div container in popup.html
@@ -69,50 +112,6 @@ function init(response) {
 	}
 }
 
-//on popup open
-window.onload = function() {
-	if(!isNewSubreddit) {
-		//initialize reddit with current background state of posts
-		chrome.runtime.sendMessage({isNew : isNewSubreddit}, function(response) {
-			//display reset to front if background state is not on front page
-			if(response.isNotFront) {
-				createResetToFront();
-			}
-			init(response);
-		});
-	}
-	document.getElementById('iform').onsubmit = function(event) {
-		return false; //stops form from reloading page
-	};
-	//initialize reddit with form input
-	document.getElementById('iform').onkeydown = function(event) {
-		if(event.keyCode == 13) {
-			//display link to return to front page (only once)
-			if(switchFrontPage) {
-				createResetToFront();
-			}
-			isNewSubreddit = true;
-			newSubreddit = document.getElementById('subreddit').value;
-			document.getElementById('container').innerHTML = ''; //clear window of posts
-			//send message to load new subreddit and initialize window with new info
-			chrome.runtime.sendMessage({
-					isNew: isNewSubreddit, subreddit: newSubreddit} , function(response) {
-				if(response.invalid && !errorText) { //display error text
-					var error = document.createElement('div'); error.id = 'error';
-					error.appendChild(document.createTextNode('Please submit a valid subreddit name'));
-					document.getElementById('title').appendChild(error);
-					errorText = true;
-				} else if(!response.invalid && errorText) { //remove error text and init
-					document.getElementById('title').removeChild(document.getElementById('error'));
-					errorText = false;
-					init(response); 
-				} else if(!response.invalid) { //init
-					init(response);
-				}
-			});
-		}
-	};
-}
 //displays reset option below change subreddit form
 function createResetToFront() {
 	var reset = document.createElement('span'); reset.id = 'reset';
@@ -121,6 +120,7 @@ function createResetToFront() {
 	title.appendChild(reset);
 	switchFrontPage = false;
 }
+
 //reset window to front page
 function resetToFront(event) {
 	//remove error text if present
@@ -174,8 +174,8 @@ function getPostInfo(post) {
 	//get amount of hours since post was submitted
 	var currentTime = new Date().getTime();
 	var postTime = post.data.created_utc;
-	var hoursAgo = document.createTextNode(Math.floor((Math.floor(currentTime / 1000) 
-														- postTime) / 3600));
+	var hoursAgo = document.createTextNode(
+		                        Math.floor((Math.floor(currentTime / 1000) - postTime) / 3600));
 	//get subreddit that post was submitted to
 	var subredditText = post.data.subreddit;
 	var subredditLink = document.createElement('a'); subredditLink.className = 'info';
