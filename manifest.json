@@ -3,7 +3,7 @@
 
   "name": "Reddit at a Glance",
   "description": "Reddit at a Glance displays reddit posts in a popup window and notifies you of new posts",
-  "version": "1.0",
+  "version": "1.1",
   "background": {
     "script": "background.js",
     "page": "background.html"

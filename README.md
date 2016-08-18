@@ -6,3 +6,8 @@ To use this extension, download it from the [Chrome Web Store](https://chrome.go
 
 ## Demo
 ![Demo](https://raw.githubusercontent.com/stefaluc/reddit-at-a-glance/master/assets/images/demo.gif)
+
+###TODO:
+1. Fix buggy notification logic
+2. Change background page logic to event page
+3. Redo popup UI with AngularJS
